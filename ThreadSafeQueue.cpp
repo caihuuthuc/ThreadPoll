@@ -59,7 +59,7 @@ class ThreadSafeQueue {
         if (head.get() == get_tail()) {
             return false;
         }
-        value = *head->data;
+        value = std::move(*head->data);
         std::unique_ptr<Node> old_head = std::move(head);
         head = std::move(old_head->next);
         return true;
