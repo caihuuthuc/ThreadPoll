@@ -1,5 +1,6 @@
 #include <thread>
 #include <vector>
+#include <queue>
 #include <atomic>
 #include <memory>
 #include <functional>
@@ -10,45 +11,73 @@
 
 #include "ThreadSafeQueue.hpp"
 
+
 class ThreadPool {
     using task_type = MovableNoCopyableFunctionWrapper;
-
+    using local_queue_type = std::deque<task_type>;
+    
+    unsigned int n_threads;
     std::vector<std::thread> threads;
+
+    std::vector<local_queue_type> local_queues;
     ThreadSafeQueue<task_type> work_queue;
     std::atomic_bool done;
 
-    void worker_thread() {
-        std::cout << "worker thread \n" ;
+    inline static thread_local local_queue_type * local_work_queue;
+    inline static thread_local size_t thread_index;
 
-        task_type task;
+    unsigned int get_n_threads(const unsigned int & n_threads_) {
+        unsigned int res = std::thread::hardware_concurrency() - 1;
+        
+        res = n_threads_ > 0 ? n_threads_ : 0;
+        res = res > std::thread::hardware_concurrency() - 1 ? std::thread::hardware_concurrency() - 1 : res;
+        return res;
+    }
+
+
+    void worker_thread(size_t index) {
+        // local_work_queue = local_work_queues[worker_index].get();
+        // index = 1;
+        thread_index = index;
+        local_work_queue = &local_queues[thread_index];
         while (!done) {
-            if (work_queue.try_pop(task)) // will call move assignment
-            {
-                std::cout << "try pop " << std::endl;
-                task();
-            }
-            else {
-                std::this_thread::yield();
-            }
+            run_pending_task();
         }
     }
+
+
+    void run_pending_task() {
+        task_type task;
+        if (local_work_queue && !local_work_queue->empty()) {
+            task = std::move(local_work_queue->front());
+            local_work_queue->pop_front();
+        }
+        else if (work_queue.try_pop(task)) // will call move assignment
+        {
+
+            task();
+        }
+        else {
+            std::this_thread::yield();
+        }
+
+    }
+
     public:
     ThreadPool(const unsigned int& num_worker_threads): 
             done(false), 
-            threads () 
+            threads (),
+            local_queues (),
+            n_threads(get_n_threads(num_worker_threads))
     {   
-        unsigned int n_threads = std::thread::hardware_concurrency() - 1;
-        
-        n_threads = num_worker_threads > 0 ? num_worker_threads : 0;
-        n_threads = num_worker_threads > std::thread::hardware_concurrency() - 1 ? std::thread::hardware_concurrency() - 1 : num_worker_threads;
-
         try {
+            local_queues.resize(n_threads);
             for (unsigned int i = 0; i < n_threads; ++i) {
-                threads.push_back(std::thread(&ThreadPool::worker_thread, this));
+                threads.push_back(std::thread(&ThreadPool::worker_thread, this, static_cast<size_t>(i)));
             }
         }
         catch (...) {
-            std::cout << "some error" << std::endl;
+            std::cout << "some errors" << std::endl;
             done = true;
             throw;
         }
@@ -56,17 +85,24 @@ class ThreadPool {
     }
 
 
-    template <  typename FunctionType, typename ResultType = typename std::result_of<FunctionType()>::type>
-    std::future<ResultType> submit(FunctionType f) {
-        std::packaged_task<ResultType()> task(std::move(f));
+    template <typename FunctionType, typename ... Args, typename ResultType = typename std::result_of<FunctionType(Args...)>::type>
+    std::future<ResultType> submit(FunctionType&& f, Args&& ... args) {
+        std::packaged_task<ResultType()> task(
+            std::bind(std::forward<FunctionType>(f), std::forward<Args>(args)...)
+        );
         std::future<ResultType> res (task.get_future());
-        work_queue.push(std::move(task));
+
+        if (local_work_queue) {
+            local_work_queue->push_back(std::move(task));
+        }
+        else {
+            work_queue.push(std::move(task));
+        }
         return res;
     }
 
 
     ~ThreadPool() {
-        std::cout << "Destroy thread pool\n";
         done = true;
         for (unsigned int i = 0; i < threads.size(); ++i) {
             if (threads[i].joinable()) {
@@ -74,25 +110,4 @@ class ThreadPool {
             }
         }
     }
-
 };
-
-
-
-void f() {
-    std::cout << "Hello world from thread pool\n";
-}
-
-int main() {
-    ThreadPool thread_pool(5); // A thead pool with 5 thread
-
-    std::list<int> intList {1,2,3};
-    thread_pool.submit(f);
-
-    std::packaged_task<int()> task(std::bind(accumulation_block<int>(), intList.begin(), intList.end()));
-    std::future<int> the_future = task.get_future();
-    thread_pool.submit(std::move(task));
-
-    std::cout << "accumulation value: " << the_future.get() << std::endl;
-
-}
