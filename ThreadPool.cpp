@@ -51,10 +51,10 @@ class ThreadPool {
         if (local_work_queue && !local_work_queue->empty()) {
             task = std::move(local_work_queue->front());
             local_work_queue->pop_front();
+            task();
         }
         else if (work_queue.try_pop(task)) // will call move assignment
         {
-
             task();
         }
         else {
