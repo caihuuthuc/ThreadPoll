@@ -10,7 +10,7 @@
 #include <functional>
 
 #include "thread_safe_queue.hpp"
-
+#include "movable_no_copyable_function_wrapper.hpp"
 
 class thread_pool {
     using task_type = movable_no_copyable_function_wrapper; 
