@@ -3,14 +3,14 @@
 #include <iostream>
 #include <numeric>
 
-tenmplate <typename T, typename Iterator = std::list<T>::iterator>
+template <typename T, typename Iterator = typename std::list<T>::iterator>
 struct accumulation_block {
   T operator() (Iterator begin, Iterator end) {
     return std::accumulation(begin, end, T{});
   }
 };
 
-template <typename T, typename Iterator = std::list<T>::iterator>
+template <typename T, typename Iterator = typename std::list<T>::iterator>
 T accumulation(Iterator first, Iterator last, T init) {
   thread_pool pool(2);
   unsigned long const length = std::distance(first, last);
