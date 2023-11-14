@@ -32,6 +32,7 @@ T accumulation(Iterator first, Iterator last, T init) {
   for (auto i =0; i < num_blocks; ++i) {
     result += futures[i].get();
   }
+  return result;
 }
 
 int main() {
