@@ -20,7 +20,7 @@ class thread_pool {
     std::vector<std::thread> threads;
 
     std::vector<local_queue_type> local_queues;
-    ThreadSafeQueue<task_type> work_queue;
+    thread_safe_queue<task_type> work_queue;
     std::atomic_bool done;
 
     inline static thread_local local_queue_type * local_work_queue;
