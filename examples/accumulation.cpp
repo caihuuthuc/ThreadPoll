@@ -6,7 +6,7 @@
 template <typename T, typename Iterator = typename std::list<T>::iterator>
 struct accumulation_block {
   T operator() (Iterator begin, Iterator end) {
-    return std::accumulation(begin, end, T{});
+    return std::accumulate(begin, end, T{});
   }
 };
 
