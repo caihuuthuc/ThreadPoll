@@ -9,11 +9,11 @@
 #include <future>
 #include <functional>
 
-#include "ThreadSafeQueue.hpp"
+#include "thread_safe_queue.hpp"
 
 
-class ThreadPool {
-    using task_type = MovableNoCopyableFunctionWrapper;
+class thread_pool {
+    using task_type = movable_no_copyable_function_wrapper; 
     using local_queue_type = std::deque<task_type>;
     
     unsigned int n_threads;
@@ -26,18 +26,7 @@ class ThreadPool {
     inline static thread_local local_queue_type * local_work_queue;
     inline static thread_local size_t thread_index;
 
-    unsigned int get_n_threads(const unsigned int & n_threads_) {
-        unsigned int res = std::thread::hardware_concurrency() - 1;
-        
-        res = n_threads_ > 0 ? n_threads_ : 0;
-        res = res > std::thread::hardware_concurrency() - 1 ? std::thread::hardware_concurrency() - 1 : res;
-        return res;
-    }
-
-
     void worker_thread(size_t index) {
-        // local_work_queue = local_work_queues[worker_index].get();
-        // index = 1;
         thread_index = index;
         local_work_queue = &local_queues[thread_index];
         while (!done) {
@@ -53,26 +42,25 @@ class ThreadPool {
             local_work_queue->pop_front();
             task();
         }
-        else if (work_queue.try_pop(task)) // will call move assignment
+        else if (work_queue.try_pop(task))
         {
             task();
         }
         else {
             std::this_thread::yield();
         }
-
     }
 
     public:
-    ThreadPool(const unsigned int& num_worker_threads): 
+    thread_pool(unsigned num_worker_threads): 
             done(false), 
             threads (),
             local_queues (),
-            n_threads(get_n_threads(num_worker_threads))
+            n_threads(std::move(num_worker_threads))
     {   
         try {
             local_queues.resize(n_threads);
-            for (unsigned int i = 0; i < n_threads; ++i) {
+            for (unsigned i = 0; i < n_threads; ++i) {
                 threads.push_back(std::thread(&ThreadPool::worker_thread, this, static_cast<size_t>(i)));
             }
         }
@@ -81,7 +69,6 @@ class ThreadPool {
             done = true;
             throw;
         }
-    
     }
 
 
@@ -102,9 +89,9 @@ class ThreadPool {
     }
 
 
-    ~ThreadPool() {
+    ~thread_pool() {
         done = true;
-        for (unsigned int i = 0; i < threads.size(); ++i) {
+        for (unsigned i = 0; i < threads.size(); ++i) {
             if (threads[i].joinable()) {
                 threads[i].join();
             }
