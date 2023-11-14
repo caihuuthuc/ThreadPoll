@@ -61,7 +61,7 @@ class thread_pool {
         try {
             local_queues.resize(n_threads);
             for (unsigned i = 0; i < n_threads; ++i) {
-                threads.push_back(std::thread(&ThreadPool::worker_thread, this, static_cast<size_t>(i)));
+                threads.push_back(std::thread(&thread_pool::worker_thread, this, static_cast<size_t>(i)));
             }
         }
         catch (...) {
