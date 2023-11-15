@@ -1,2 +1,2 @@
 # thread_pool
-A C++11 Thread Pool implementation
+A C++17 Thread Pool implementation
