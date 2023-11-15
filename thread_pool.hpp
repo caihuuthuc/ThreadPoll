@@ -10,16 +10,21 @@
 #include <functional>
 
 #include "thread_safe_queue.hpp"
+#include "stealing_work_deque.hpp"
+
+#ifndef  __FUNCTION_WRAPPER_
+#define __FUNCTION_WRAPPER_
 #include "movable_no_copyable_function_wrapper.hpp"
+#endif
 
 class thread_pool {
     using task_type = movable_no_copyable_function_wrapper; 
-    using local_queue_type = std::deque<task_type>;
+    using local_queue_type = stealing_work_deque;
     
     unsigned int n_threads;
     std::vector<std::thread> threads;
 
-    std::vector<local_queue_type> local_queues;
+    std::vector<std::unique_ptr<local_queue_type>> local_queues;
     thread_safe_queue<task_type> work_queue;
     std::atomic_bool done;
 
@@ -28,29 +33,22 @@ class thread_pool {
 
     void worker_thread(size_t index) {
         thread_index = index;
-        local_work_queue = &local_queues[thread_index];
+        local_work_queue = local_queues[thread_index].get();
         while (!done) {
             run_pending_task();
         }
     }
 
-
-    void run_pending_task() {
-        task_type task;
-        if (local_work_queue && !local_work_queue->empty()) {
-            task = std::move(local_work_queue->front());
-            local_work_queue->pop_front();
-            task();
+    bool steal_work_from_other_threads(task_type& task) {
+        auto local_queue_size = local_queues.size();
+        for (size_t index = 0; index < local_queue_size - 1; ++index) {
+            auto other_thread_index = (thread_index + index + 1) % local_queue_size;
+            if (local_queues[other_thread_index]->try_steal(task)) {
+                return true;
+            }
         }
-        else if (work_queue.try_pop(task))
-        {
-            task();
-        }
-        else {
-            std::this_thread::yield();
-        }
+        return false;
     }
-
     public:
     thread_pool(unsigned num_worker_threads): 
             done(false), 
@@ -59,9 +57,9 @@ class thread_pool {
             n_threads(std::move(num_worker_threads))
     {   
         try {
-            local_queues.resize(n_threads);
             for (unsigned i = 0; i < n_threads; ++i) {
                 threads.push_back(std::thread(&thread_pool::worker_thread, this, static_cast<size_t>(i)));
+                local_queues.push_back(std::make_unique<local_queue_type>());
             }
         }
         catch (...) {
@@ -80,7 +78,7 @@ class thread_pool {
         std::future<ResultType> res (task.get_future());
 
         if (local_work_queue) {
-            local_work_queue->push_back(std::move(task));
+            local_work_queue->push(std::move(task));
         }
         else {
             work_queue.push(std::move(task));
@@ -88,6 +86,23 @@ class thread_pool {
         return res;
     }
 
+
+    void run_pending_task() {
+        task_type task;
+        if (local_work_queue && local_work_queue->try_pop(task)) {
+            task();
+        }
+        else if (steal_work_from_other_threads(task)) {
+            task();
+        }
+        else if (work_queue.try_pop(task)) // will call move assignment
+        {
+            task();
+        }
+        else {
+            std::this_thread::yield();
+        }
+    }
 
     ~thread_pool() {
         done = true;
