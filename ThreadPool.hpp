@@ -9,7 +9,7 @@
 #include <future>
 #include <functional>
 
-#include "TheadSafeQueue.hpp"
+#include "ThreadSafeQueue.hpp"
 #include "StealingWorkQueue.hpp"
 
 #ifndef  __FUNCTION_WRAPPER_
