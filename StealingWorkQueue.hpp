@@ -3,17 +3,17 @@
 
 #ifndef  __FUNCTION_WRAPPER_
 #define __FUNCTION_WRAPPER_
-#include "movable_no_copyable_function_wrapper.hpp"
+#include "MoveOnlyFunctionWrapper.hpp"
 #endif
 
 
-class stealing_work_deque {
-    using task_type = movable_no_copyable_function_wrapper;
+class StealingWorkQueue {
+    using task_type = move_only_function_wrapper;
     std::deque<task_type> work_deques;
     mutable std::mutex deque_mutex;
 
     public:
-    stealing_work_deque() {};
+    StealingWorkQueue() {};
 
     void push(task_type task) {
         std::lock_guard l(deque_mutex);
