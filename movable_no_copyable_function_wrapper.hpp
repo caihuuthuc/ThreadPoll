@@ -1,6 +1,6 @@
 #include <memory>
 
-class movable_no_copyable_function_wrapper {
+class move_only_function_wrapper {
     struct impl_base {
         virtual void call() = 0;
         virtual ~impl_base() {};
@@ -16,23 +16,23 @@ class movable_no_copyable_function_wrapper {
     };
 
     public:
-        movable_no_copyable_function_wrapper() = default;
+        move_only_function_wrapper() = default;
 
         template <typename F>
-        movable_no_copyable_function_wrapper(F&& f): impl(new impl_type<F>(std::move(f))) 
+        move_only_function_wrapper(F&& f): impl(new impl_type<F>(std::move(f))) 
         {}
 
-        movable_no_copyable_function_wrapper(movable_no_copyable_function_wrapper&& other) : 
+        move_only_function_wrapper(move_only_function_wrapper&& other) : 
                 impl(std::move(other.impl)) 
         {}
 
-        movable_no_copyable_function_wrapper& operator=(movable_no_copyable_function_wrapper&& other) {
+        move_only_function_wrapper& operator=(move_only_function_wrapper&& other) {
             impl = std::move(other.impl);
             return *this;
         }
 
         void operator() () {impl->call();}
 
-        movable_no_copyable_function_wrapper(const movable_no_copyable_function_wrapper&) = delete;
-        movable_no_copyable_function_wrapper& operator=(const movable_no_copyable_function_wrapper&) = delete;
+        move_only_function_wrapper(const move_only_function_wrapper&) = delete;
+        move_only_function_wrapper& operator=(const move_only_function_wrapper&) = delete;
 };
