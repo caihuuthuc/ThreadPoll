@@ -5,7 +5,7 @@
 #include <iostream>
 
 template <typename T>
-class thread_safe_queue {
+class ThreadSafeQueue {
     struct Node {
         std::shared_ptr<T> data;
         std::unique_ptr<Node> next;
@@ -47,12 +47,12 @@ class thread_safe_queue {
     }
 
     public:
-    thread_safe_queue(): head(new Node) {tail = head.get();}
-    thread_safe_queue(thread_safe_queue&&) = default;
-    thread_safe_queue& operator=(thread_safe_queue&&) = default;
+    ThreadSafeQueue(): head(new Node) {tail = head.get();}
+    ThreadSafeQueue(ThreadSafeQueue&&) = default;
+    ThreadSafeQueue& operator=(ThreadSafeQueue&&) = default;
 
-    thread_safe_queue(const thread_safe_queue&) = delete;
-    thread_safe_queue& operator=(const thread_safe_queue&) = delete;
+    ThreadSafeQueue(const ThreadSafeQueue&) = delete;
+    ThreadSafeQueue& operator=(const ThreadSafeQueue&) = delete;
 
     bool try_pop(T & value) {
         std::lock_guard<std::mutex> l(head_mutex);
