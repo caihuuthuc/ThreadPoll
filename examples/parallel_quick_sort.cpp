@@ -4,9 +4,9 @@
 #include <future>
 #include <thread>
 
-#include "../thread_pool.hpp"
+#include "../ThreadPool.hpp"
 
-thread_pool pool(2);
+ThreadPool pool(2);
 
 std::ostream& operator<<(std::ostream& ostr, const std::list<int>& list)
 {
