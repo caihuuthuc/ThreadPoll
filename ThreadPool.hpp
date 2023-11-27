@@ -17,7 +17,7 @@
 #include "MoveOnlyFunctionWrapper.hpp"
 #endif
 
-class thread_pool {
+class ThreadPool {
     using task_type = move_only_function_wrapper; 
     using local_queue_type = StealingWorkQueue;
     
@@ -50,7 +50,7 @@ class thread_pool {
         return false;
     }
     public:
-    thread_pool(unsigned num_worker_threads): 
+    ThreadPool(unsigned num_worker_threads): 
             done(false), 
             threads (),
             local_queues (),
@@ -58,7 +58,7 @@ class thread_pool {
     {   
         try {
             for (unsigned i = 0; i < n_threads; ++i) {
-                threads.push_back(std::thread(&thread_pool::worker_thread, this, static_cast<size_t>(i)));
+                threads.push_back(std::thread(&ThreadPool::worker_thread, this, static_cast<size_t>(i)));
                 local_queues.push_back(std::make_unique<local_queue_type>());
             }
         }
@@ -104,7 +104,7 @@ class thread_pool {
         }
     }
 
-    ~thread_pool() {
+    ~ThreadPool() {
         done = true;
         for (unsigned i = 0; i < threads.size(); ++i) {
             if (threads[i].joinable()) {
