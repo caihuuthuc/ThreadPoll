@@ -1,6 +1,6 @@
 #include "ThreadPool.hpp"
 
 int main() {
-  thread_pool pool(2);
+  ThreadPool pool(2);
   
 }
