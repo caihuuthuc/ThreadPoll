@@ -25,7 +25,7 @@ class ThreadPool {
     std::vector<std::thread> threads;
 
     std::vector<std::unique_ptr<local_queue_type>> local_queues;
-    thread_safe_queue<task_type> work_queue;
+    ThreadSafeQueue<task_type> work_queue;
     std::atomic_bool done;
 
     inline static thread_local local_queue_type * local_work_queue;
