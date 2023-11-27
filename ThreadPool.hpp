@@ -9,17 +9,17 @@
 #include <future>
 #include <functional>
 
-#include "thread_safe_queue.hpp"
-#include "stealing_work_deque.hpp"
+#include "TheadSafeQueue.hpp"
+#include "StealingWorkQueue.hpp"
 
 #ifndef  __FUNCTION_WRAPPER_
 #define __FUNCTION_WRAPPER_
-#include "movable_no_copyable_function_wrapper.hpp"
+#include "MoveOnlyFunctionWrapper.hpp"
 #endif
 
 class thread_pool {
-    using task_type = movable_no_copyable_function_wrapper; 
-    using local_queue_type = stealing_work_deque;
+    using task_type = move_only_function_wrapper; 
+    using local_queue_type = StealingWorkQueue;
     
     unsigned int n_threads;
     std::vector<std::thread> threads;
